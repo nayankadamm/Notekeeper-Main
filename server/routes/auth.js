@@ -9,9 +9,8 @@ const JWT_SECRET = 'NAYANANILKADAM'
 const fetchuser = require('../middleware/fetchuser')
 //route1:to create user
 router.post("/createuser",
- [body("name").isLength({ min: 3 }), 
- body("email").isEmail()],
-
+    body("name").isLength({ min: 3 }).trim().escape(),
+    body("email").isEmail().normalizeEmail(),
  
   async (req, res) => {
     //if there are errors it will give bad request
@@ -21,7 +20,8 @@ router.post("/createuser",
     }
 
     //check whether the user with this email exist already
-    let user = await User.findOne({ email: req.body.email });
+    const email = req.body.email; // already sanitized + validated
+    const user = await User.findOne({ email: { $eq: email } });
     if (user) {
       let success = false
       return res.status(400).json({ error: "sorry user with this mail id alredy exists" });
@@ -30,12 +30,15 @@ router.post("/createuser",
     const salt = await bcrypt.genSalt(10)
     const secpass = await bcrypt.hash(req.body.password,salt)
 
+    // Extract and sanitize input to prevent NoSQL injection
+    const name = req.body.name;
+    const userEmail = req.body.email;
 
     //create a new user
     user = await User.create({
-      name: req.body.name,
-      email: req.body.email,
-      password:secpass
+      name: name,
+      email: userEmail,
+      password: secpass
     });
     const data = {
       user:{
@@ -52,7 +55,7 @@ router.post("/createuser",
 //route2 :to login user
 router.post("/login",
 [
-  body('email','enter valid email').isEmail(),
+  body('email','enter valid email').isEmail().normalizeEmail(),
   body("password",'password cannot be blank').exists() 
 ], async(req,res)=>
 { 
@@ -63,7 +66,7 @@ router.post("/login",
     const {email,password}= req.body
     try{
 
-      let user = await User.findOne({email})
+      let user = await User.findOne({ email: { $eq: email } })
       if(!user){
         return res.status(400).json({errors:"please enter the valid credentials"})
       }
