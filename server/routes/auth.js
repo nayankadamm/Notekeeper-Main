@@ -21,36 +21,33 @@ router.post("/createuser",
 
     //check whether the user with this email exist already
     const email = req.body.email; // already sanitized + validated
-    const user = await User.findOne({ email: { $eq: email } });
+    let user = await User.findOne({ email: { $eq: email } });
     if (user) {
       let success = false
-      return res.status(400).json({ error: "sorry user with this mail id alredy exists" });
+      return res.status(400).json({ success, error: "sorry user with this mail id alredy exists" });
     }
-    else{
-        const salt = await bcrypt.genSalt(10)
-        const secpass = await bcrypt.hash(req.body.password,salt)
-
-        // Extract and sanitize input to prevent NoSQL injection
-        const name = req.body.name;
-        const userEmail = req.body.email;
-
-        //create a new user
-        user = await User.create({
-          name: name,
-          email: userEmail,
-          password: secpass
-        });
-        const data = {
-          user:{
-            id:user.id
-          }
-        }
-        const jstdata = jwt.sign(data,JWT_SECRET)
-        success=true
-        res.json({success, jstdata})
-    }
-
     
+    const salt = await bcrypt.genSalt(10)
+    const secpass = await bcrypt.hash(req.body.password,salt)
+
+    // Extract and sanitize input to prevent NoSQL injection
+    const name = req.body.name;
+    const userEmail = req.body.email;
+
+    //create a new user
+    user = await User.create({
+      name: name,
+      email: userEmail,
+      password: secpass
+    });
+    const data = {
+      user:{
+        id:user.id
+      }
+    }
+    const jstdata = jwt.sign(data,JWT_SECRET)
+    let success = true
+    res.json({success, jstdata})
 
   }
 );
@@ -75,12 +72,13 @@ router.post("/login",
 
       let user = await User.findOne({ email: { $eq: email } })
       if(!user){
-        return res.status(400).json({errors:"please enter the valid credentials"})
+        let success = false
+        return res.status(400).json({success, errors:"please enter the valid credentials"})
       }
      
       const passwordcompare = await bcrypt.compare(password,user.password)
       if(!passwordcompare){
-        success =false
+        let success = false
         return  res.status(400).json({success, errors:"please enter the valid credentials"})
       }
       const data = {
@@ -89,7 +87,7 @@ router.post("/login",
         }
       }
       const authtoken = jwt.sign(data, JWT_SECRET);
-      success=true
+      let success = true
       res.json({ success, authtoken })
 
       
