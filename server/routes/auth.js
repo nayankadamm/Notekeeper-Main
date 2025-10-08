@@ -63,7 +63,11 @@ router.post("/login",
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    const {email,password}= req.body
+    
+    // Sanitize and validate input to prevent NoSQL injection
+    const email = String(req.body.email);
+    const password = String(req.body.password);
+    
     try{
 
       let user = await User.findOne({ email: { $eq: email } })
